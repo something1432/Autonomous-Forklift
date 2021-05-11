@@ -54,7 +54,7 @@ def findArucoMarkers(img, markerSize=4, totalMarkers=100, draw=True):
 
 # def augmentAruco(bbox, id, img, imgAug, drawID=True):
 
-
+# GIT TESTING
 def main():
     cap = cv2.VideoCapture("Tracking target videos/aruco cube 2.mp4")
     frameSize = (1280,720)
