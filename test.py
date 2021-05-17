@@ -5,7 +5,7 @@ import os
 
 import glob
 
-# TEST MESSAGE
+# TEST MESSAGE 2
 # Function to find chessboard corners for use in camera calibration
 def findChessboardCorners():
     chessboardSize = (7, 7)
