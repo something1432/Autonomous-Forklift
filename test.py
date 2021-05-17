@@ -5,8 +5,8 @@ import os
 
 import glob
 
-
-################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
+# TEST MESSAGE
+# Function to find chessboard corners for use in camera calibration
 def findChessboardCorners():
     chessboardSize = (7, 7)
 
@@ -40,6 +40,7 @@ def findChessboardCorners():
     return [objpoints, imgpoints]
 
 
+# Function to identify and draw bounding boxes around aruco markers
 def findArucoMarkers(img, markerSize=4, totalMarkers=100, draw=True):
     imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     key = getattr(aruco,f'DICT_{markerSize}X{markerSize}_{totalMarkers}')
@@ -54,14 +55,14 @@ def findArucoMarkers(img, markerSize=4, totalMarkers=100, draw=True):
 
 # def augmentAruco(bbox, id, img, imgAug, drawID=True):
 
-# GIT TESTING
 def main():
-    cap = cv2.VideoCapture("Tracking target videos/aruco cube 2.mp4")
+    cap = cv2.VideoCapture("Tracking target videos/aruco cube 3.mp4")
     frameSize = (1280,720)
+    markerLength = 0.040 # size of one side of marker length 45 mmq
     objpoints, imgpoints = findChessboardCorners()
     ret, cameraMatrix, cameraDistortion, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, frameSize, None, None)
-    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-    out = cv2.VideoWriter('Tracking.mp4', fourcc, 30.0, (853, 480))
+    # fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    # out = cv2.VideoWriter('Tracking.mp4', fourcc, 30.0, (853, 480))
 
     while True:
         ret, img = cap.read()
@@ -70,16 +71,18 @@ def main():
         # Loop through all markers
         if len(arucoFound[0]) != 0:
            for bbox, id in zip(arucoFound[0], arucoFound[1]):
-               rvec, tvec, markerPoints = aruco.estimatePoseSinnnngleMarkers(bbox,0.02,cameraMatrix,cameraDistortion)
+               rvec, tvec, markerPoints = aruco.estimatePoseSingleMarkers(bbox,markerLength,cameraMatrix,cameraDistortion)
                (rvec - tvec).any() # prevent numpy error?
                aruco.drawAxis(img, cameraMatrix,cameraDistortion, rvec, tvec, 0.01) # Draw Axis
+               print(tvec)
 
         cv2.imshow("Image", img)
-        resized_img = cv2.resize(img, (853, 480), interpolation=cv2.INTER_AREA)
-        out.write(resized_img)
+        # resized_img = cv2.resize(img, (853, 480), interpolation=cv2.INTER_AREA)
+        # out.write(resized_img)
+        cv2.waitKey(0) == ord('q')
 
-        if cv2.waitKey(1) == ord('q'):
-            break
+        # if cv2.waitKey(0) == ord('q'):
+            # break
 
 
 if __name__ == "__main__":
