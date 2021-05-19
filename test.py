@@ -56,7 +56,7 @@ def findArucoMarkers(img, markerSize=4, totalMarkers=100, draw=True):
 # def augmentAruco(bbox, id, img, imgAug, drawID=True):
 
 def main():
-    cap = cv2.VideoCapture("Tracking target videos/aruco cube 3.mp4")
+    cap = cv2.VideoCapture(0)
     frameSize = (1280,720)
     markerLength = 0.040 # size of one side of marker length 45 mmq
     objpoints, imgpoints = findChessboardCorners()
@@ -79,10 +79,10 @@ def main():
         cv2.imshow("Image", img)
         # resized_img = cv2.resize(img, (853, 480), interpolation=cv2.INTER_AREA)
         # out.write(resized_img)
-        cv2.waitKey(0) == ord('q')
+        #cv2.waitKey(0) == ord('q')
 
-        # if cv2.waitKey(0) == ord('q'):
-            # break
+        if cv2.waitKey(1) == ord('q'):
+            break
 
 
 if __name__ == "__main__":
