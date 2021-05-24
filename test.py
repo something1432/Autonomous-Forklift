@@ -5,10 +5,9 @@ import os
 
 import glob
 
-# TEST MESSAGE 3
 # Function to find chessboard corners for use in camera calibration
-def findChessboardCorners():
-    chessboardSize = (7, 7)
+def checkerboardCalibration(frameSize):
+    chessboardSize = (7, 7) # not number of squares
 
     # termination criteria
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -37,7 +36,17 @@ def findChessboardCorners():
             corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
             imgpoints.append(corners)
 
-    return [objpoints, imgpoints]
+    ret, cameraMatrix, cameraDistortion, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, frameSize, None, None)
+    saveCoefficients(cameraMatrix, cameraDistortion)
+
+    return [cameraMatrix, cameraDistortion, rvec, tvec]
+
+def saveCoefficients(mtx, dist):
+    cv_file = cv2.FileStorage("calibrationCoefficients.txt", cv2.FILE_STORAGE_WRITE)
+    cv_file.write("camera_matrix", mtx)
+    cv_file.write("dist_coeff", dist)
+    # note you *release* you don't close() a FileStorage object
+    cv_file.release()
 
 
 # Function to identify and draw bounding boxes around aruco markers
@@ -55,12 +64,37 @@ def findArucoMarkers(img, markerSize=4, totalMarkers=100, draw=True):
 
 # def augmentAruco(bbox, id, img, imgAug, drawID=True):
 
+# Function to determine distance between 2 aruco markers
+def relativePosition(rvec1, tvec1, rvec2, tvec2):
+    """ Get relative position for rvec2 & tvec2. Compose the returned rvec & tvec to use composeRT with rvec2 & tvec2 """
+    rvec1, tvec1 = rvec1.reshape((3, 1)), tvec1.reshape((3, 1))
+    rvec2, tvec2 = rvec2.reshape((3, 1)), tvec2.reshape((3, 1))
+
+    # Inverse the second marker
+    R, _ = cv2.Rodrigues(rvec2)
+    R = np.matrix(R).T
+    invTvec = np.dot(R, np.matrix(-tvec2))
+    invRvec, _ = cv2.Rodrigues(R)
+
+    info = cv2.composeRT(rvec1, tvec1, invRvec, invTvec)
+    composedRvec, composedTvec = info[0], info[1]
+    composedRvec = composedRvec.reshape((3, 1))
+    composedTvec = composedTvec.reshape((3, 1))
+    return composedRvec, composedTvec
+
 def main():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture("Tracking target videos/aruco location.mp4")
     frameSize = (1280,720)
-    markerLength = 0.040 # size of one side of marker length 45 mmq
-    objpoints, imgpoints = findChessboardCorners()
-    ret, cameraMatrix, cameraDistortion, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, frameSize, None, None)
+    markerLength = 0.020 # size of one side of marker length 45 mmq
+    markerTvecList = []
+    markerRvecList = []
+
+    # get Camera and distortion matrices
+    cameraMatrix, cameraDistortion, rvec, tvec = checkerboardCalibration(frameSize)
+    cameraMatrix = np.array([[1.35342447e+04, 0.00000000e+00, 5.75048204e+02], [0.00000000e+00, 1.47213049e+04, 4.37627044e+02], [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
+    cameraDistortion = np.array([ 1.0298586806986000e+01, -3.2545427707449330e+03, -7.7201335767091350e-03, 1.0576208337739967e-01, -9.8177513393515223e+00 ])
+
+    # Initialize video recording
     # fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     # out = cv2.VideoWriter('Tracking.mp4', fourcc, 30.0, (853, 480))
 
@@ -70,19 +104,36 @@ def main():
 
         # Loop through all markers
         if len(arucoFound[0]) != 0:
-           for bbox, id in zip(arucoFound[0], arucoFound[1]):
+            del markerTvecList[:]
+            del markerRvecList[:]
+
+            for bbox, id in zip(arucoFound[0], arucoFound[1]):
                rvec, tvec, markerPoints = aruco.estimatePoseSingleMarkers(bbox,markerLength,cameraMatrix,cameraDistortion)
                (rvec - tvec).any() # prevent numpy error?
                aruco.drawAxis(img, cameraMatrix,cameraDistortion, rvec, tvec, 0.01) # Draw Axis
-               print(tvec)
+
+               markerRvecList.append(rvec)
+               markerTvecList.append(tvec)
+               # print(cameraMatrix)
+
+        # print(markerTvecList)
+
+        # Print distance between two markers
+        if len(markerTvecList) == 2:
+            composedRvec, composedTvec = relativePosition( markerRvecList[0], markerTvecList[0],  markerRvecList[1], markerTvecList[1])
+            distance = np.linalg.norm(composedTvec)
+            print(distance)
 
         cv2.imshow("Image", img)
+
+        # Record frame to video
         # resized_img = cv2.resize(img, (853, 480), interpolation=cv2.INTER_AREA)
         # out.write(resized_img)
-        #cv2.waitKey(0) == ord('q')
 
-        if cv2.waitKey(1) == ord('q'):
-            break
+        cv2.waitKey(0) == ord('q')
+
+        # if cv2.waitKey(24) == ord('q'):
+            # break
 
 
 if __name__ == "__main__":
