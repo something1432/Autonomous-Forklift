@@ -1,6 +1,6 @@
 import cv2
 
-vidcap = cv2.VideoCapture("test.mp4")
+vidcap = cv2.VideoCapture("Calibration Video/20210525_185120.mp4")
 ret, img = vidcap.read()
 count = 0
 

@@ -6,8 +6,9 @@ import os
 import glob
 
 # Function to find chessboard corners for use in camera calibration
-def checkerboardCalibration(frameSize):
-    chessboardSize = (7, 7) # not number of squares
+def checkerboardCalibration():
+    chessboardSize = (8, 6) # not number of squares
+    square_size = 0.023
 
     # termination criteria
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -16,11 +17,13 @@ def checkerboardCalibration(frameSize):
     objp = np.zeros((chessboardSize[0] * chessboardSize[1], 3), np.float32)
     objp[:, :2] = np.mgrid[0:chessboardSize[0], 0:chessboardSize[1]].T.reshape(-1, 2)
 
+    objp = objp * square_size
+
     # Arrays to store object points and image points from all the images.
     objpoints = []  # 3d point in real world space
     imgpoints = []  # 2d points in image plane.
 
-    images = glob.glob('Calibration images\*.jpg')
+    images = glob.glob('Calibration images 2\*.jpg')
 
     for image in images:
 
@@ -34,9 +37,9 @@ def checkerboardCalibration(frameSize):
         if ret == True:
             objpoints.append(objp)
             corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
-            imgpoints.append(corners)
+            imgpoints.append(corners2)
 
-    ret, cameraMatrix, cameraDistortion, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, frameSize, None, None)
+    ret, cameraMatrix, cameraDistortion, rvec, tvec = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
     saveCoefficients(cameraMatrix, cameraDistortion)
 
     return [cameraMatrix, cameraDistortion, rvec, tvec]
@@ -74,6 +77,7 @@ def relativePosition(rvec1, tvec1, rvec2, tvec2):
     R, _ = cv2.Rodrigues(rvec2)
     R = np.matrix(R).T
     invTvec = np.dot(R, np.matrix(-tvec2))
+    # invTvec = np.matrix(-tvec2)
     invRvec, _ = cv2.Rodrigues(R)
 
     info = cv2.composeRT(rvec1, tvec1, invRvec, invTvec)
@@ -90,9 +94,9 @@ def main():
     markerRvecList = []
 
     # get Camera and distortion matrices
-    cameraMatrix, cameraDistortion, rvec, tvec = checkerboardCalibration(frameSize)
-    cameraMatrix = np.array([[1.35342447e+04, 0.00000000e+00, 5.75048204e+02], [0.00000000e+00, 1.47213049e+04, 4.37627044e+02], [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]])
-    cameraDistortion = np.array([ 1.0298586806986000e+01, -3.2545427707449330e+03, -7.7201335767091350e-03, 1.0576208337739967e-01, -9.8177513393515223e+00 ])
+    # cameraMatrix, cameraDistortion, rvec, tvec = checkerboardCalibration()
+    cameraMatrix = np.array([[ 1.1792315900622066e+03, 0., 6.6109466233615797e+02], [0., 1.1789853389017303e+03, 3.4401678037318629e+02], [0., 0., 1. ]])
+    cameraDistortion = np.array([ 1.6836095183955574e-01, -6.4171147477695833e-01, -2.2543184593057726e-03, 2.7872634899685253e-03, 7.5117009620855502e-01 ])
 
     # Initialize video recording
     # fourcc = cv2.VideoWriter_fourcc(*'MP4V')
@@ -124,16 +128,20 @@ def main():
             distance = np.linalg.norm(composedTvec)
             print(distance)
 
+        # elif len(markerTvecList) == 1:
+            # distance = np.linalg.norm(markerTvecList[0])
+            # print(distance)
+
         cv2.imshow("Image", img)
 
         # Record frame to video
         # resized_img = cv2.resize(img, (853, 480), interpolation=cv2.INTER_AREA)
         # out.write(resized_img)
 
-        cv2.waitKey(0) == ord('q')
+        # cv2.waitKey(0) == ord('q')
 
-        # if cv2.waitKey(24) == ord('q'):
-            # break
+        if cv2.waitKey(24) == ord('q'):
+            break
 
 
 if __name__ == "__main__":
