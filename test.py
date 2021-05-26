@@ -11,6 +11,8 @@ def checkerboardCalibration():
     square_size = 0.023
 
     # termination criteria
+    # This criteria is used to determine when the algorithm is stopped. In this situation, the algorithm will be ran until
+    # an accuracy, epsilon, of 0.001 is reached or 30 iterations of the algorithm is conducted.
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
